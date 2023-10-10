@@ -4,7 +4,7 @@ Description = Starts the lora transceiver.
 [Service]
 User=root
 Group=root
-ExecStart = /usr/bin/lora_transceiver
+ExecStart = /usr/bin/lora_transceiver -C /etc/lora/lora.conf -f
 Restart=always
 RestartSec=3
 

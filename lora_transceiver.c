@@ -31,13 +31,14 @@
 #include <lib_cfg.h>
 #include <lib_log.h>
 #include <lib_str.h>
+#include <http_request.h>
 
 /* LORASEND_FIFO : send this to other nodes.*/
 #define LORASEND_FIFO "/dev/shm/send_fifo"
 /* LORARECEIVE_FIFO : received from other nodes.*/
 #define LORARECEIVE_FIFO "/dev/shm/receive_fifo"
 /* User id that has access to the FIFO */
-#define FIFO_OWNER 33
+#define FIFO_OWNER 1001
 
 // #############################################
 // #############################################
@@ -174,10 +175,15 @@ typedef unsigned char byte;
 // The SPI device this board is using.
 const int SPI_DEVICE = 0;
 
-char message[256];
+char message[20];
 bool sx1272 = true;
 byte receivedbytes;
 enum sf_t { SF7=7, SF8, SF9, SF10, SF11, SF12 };
+
+// LoRa message size and format of beginning and end
+const int message_size = 16;
+const int begin_fmt_size = 5;
+const int end_fmt_size = 5;
 
 /*******************************************************************************
  *
@@ -202,7 +208,7 @@ int power = 17;
 int blocksize = 256;
 
 // Set center frequency
-static uint32_t freq = 868100000; // in Mhz! (868.1)
+static uint32_t freq = 915000000; // in Mhz! (868.1)
 
 void hexdump(byte *frame, byte datalen){
     int count=0;
@@ -504,7 +510,7 @@ int open_create_fifo(const char *fifo_path, int flags){
         printf("Creating fifo %s\n", fifo_path); 
         retval = mkfifo((char *)fifo_path, 0666);
         retval = chown(fifo_path, FIFO_OWNER, FIFO_OWNER);
-        printf("Done\n");
+        printf("Done\n");   
     }
     if (retval != 0) {
         printf("create_fifo : failed to create fifo %s",
@@ -683,6 +689,54 @@ int full_write(int fd, char *buf, int len) {
     return total;
 }
 
+// verificar que mensaje contenga el formato apropiado
+// y checksum correcto?
+bool message_is_valid(char* message){
+
+    printf("Verificando validez de mensaje\n");
+
+    if (sizeof(message)/sizeof(message[0]) != message_size){
+        printf("Tamaño de mensaje incorrecto.\n");
+        return false;
+    }
+
+    char begin_fmt[begin_fmt_size] = '';
+    char end_fmt[end_fmt_size] = '';
+
+    strncpy(begin_fmt, message, begin_fmt_size);
+    strncpy(end_fmt, message + message_size - 1 - begin_end_fmt_size, end_fmt_size);
+    
+    if (begin_fmt != '<stL>' || end_fmt != '<edL>'){
+        printf("Formato de mensaje incorrecto.");
+        printf("Formato de inicio recibido: %s", begin_fmt);
+        printf("Formato de final recibido: %s", end_fmt);
+        return false;
+    }
+    
+    printf("Mensaje válido");
+    return true;
+}
+
+int upload_message(char* message){
+
+    if (message_is_valid(message)){
+
+        char sala_id_str[3]='';
+        char ocupacion_actual_str[3]='';
+
+        strncpy(sala_id_str, message + begin_fmt_size, 3);
+        strncpy(ocupacion_actual_str, message + begin_fmt_size + 3, 3);
+        printf("sala_id recibido:%s\n", sala_id_str);
+        printf("ocupacion recibida:%s\n", ocupacion_actual_str);
+        
+        return post_request(atoi(sala_id_str), atoi(ocupacion_actual_str));
+
+    } else {
+        return -1;
+    }
+}
+
+
 int main (int argc, char *argv[]) {
     int rfd = -1;
     int wfd = -1;
@@ -690,6 +744,7 @@ int main (int argc, char *argv[]) {
     int buflen = -1;
     int retv = -1;
     struct pollfd fds[1];
+
     printf("------------------------------------\n");
     load_config();
     wiringPiSetup();
@@ -762,6 +817,13 @@ int main (int argc, char *argv[]) {
                 printf("Received %i bytes.\n", buflen);
                 if (verbose > 1)
                     hexdump((byte *)message, buflen);
+                    
+                    // POST request a server 
+                    if (upload_message(message)){
+                        printf("Mensaje recibido y almacenado.");
+                    } else{
+                        printf("Error al almacenar en BD.");
+                    }
             }
             written = 0;
             if (buflen >= 0) {

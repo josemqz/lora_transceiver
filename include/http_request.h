@@ -1,0 +1,1 @@
+int post_request(int sala_id, int ocupacion_actual);

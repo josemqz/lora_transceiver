@@ -1,7 +1,7 @@
 CC=g++ -I ./include
 CFLAGS=-c -Wall
-LIBS=-lwiringPi
-OBJECTS=lora_transceiver.c lib_log.c lib_str.c lib_cfg.c
+LIBS=-lwiringPi lcurl
+OBJECTS=lora_transceiver.c lib_log.c lib_str.c lib_cfg.c http_request.c
 
 all: lora_transceiver
 

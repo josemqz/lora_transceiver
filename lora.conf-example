@@ -4,13 +4,13 @@
 # /etc/lora/lora.conf
 ############################################
 
-frequency=868100000
+frequency=915000000
 # Valid spreading factors:
 # SF7, SF8, SF9, SF10, SF11 or SF12.
 sf=SF7
 # Valid power settings:
 # 2 .. 17 and 20.
-power = 14
+power = 1
 # Options for bandwidth:
 # BW7_81, BW10_41, BW15_62, BW20_83,
 # BW31_25, BW41_66, BW62_5, BW125, BW250, BW500
@@ -20,17 +20,17 @@ bw=BW125
 # Options for blocksize:
 # 1 .. 254
 # Defaults to 64.
-blocksize = 32
+blocksize = 16
 # Available coding rates:
 # CR4_5, CR4_6, CR4_7, CR4_8
-coding_rate=CR4_8
+coding_rate=CR4_5
 # crc: enabled or disabled.
 crc=enabled
 # Enable lora protocol debugging.
 # debug: enabled or disabled.
-debug=disabled
+debug=enabled
 # verbose: 0, 1 or 2
 # 0 for silent.
 # 1 logs the number of bytes send or received.
 # 2 hexdumps the received or send messages.
-verbose = 0
+verbose = 2
